@@ -1,5 +1,17 @@
 # Agent Action Authority Examples
 
+<!-- toolkit-trust-card:start -->
+> **Public contract:** Stable pattern · about 5 min · Python 3 · no model · no network
+>
+> **Operation:** Read-only check; examples may use temporary files
+>
+> **A pass establishes:** Synthetic actions and scoped grants receive the expected allow, reject, or reapproval decisions.
+>
+> **It does not establish:** The classifier does not execute actions, provide a sandbox, or infer security-relevant scope.
+>
+> **First check:** `python3 action_authority_check.py --self-test`
+<!-- toolkit-trust-card:end -->
+
 A tiny collection of runnable examples for classifying model or agent actions
 before execution.
 
