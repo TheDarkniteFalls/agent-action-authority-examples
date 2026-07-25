@@ -13,11 +13,31 @@
 <!-- toolkit-trust-card:end -->
 
 A tiny collection of runnable examples for classifying model or agent actions
-before execution.
+before execution and recovering safely when a state-changing tool's outcome is
+unknown.
 
 The examples do not call a model and do not execute actions. They read
-synthetic JSONL cases, classify each proposed action or approval scope, and
-check the result against the expected decision.
+synthetic JSONL cases, classify each proposed action, approval scope, or
+recovery state, and check the result against the expected decision.
+
+## Did the Tool Already Run?
+
+After a timeout or interruption, run the synthetic recovery cases:
+
+```sh
+python3 effect_recovery_check.py --self-test
+```
+
+Three representative outcomes are:
+
+```text
+PASS lost_response_read_back_finds_effect record_observed_success
+PASS timeout_read_back_reports_absence retry_same_operation_id
+PASS unavailable_read_back_stops_for_review stop_for_review
+```
+
+These mean: preserve an observed success, retry only after evidence of absence,
+and stop when the outcome cannot be proven.
 
 ## Why It Exists
 
@@ -29,6 +49,10 @@ They should also separate approving one tool call from granting reusable
 authority. A reusable grant should be explicit about the tool identity,
 application-defined argument scope, and expiry.
 
+After dispatch, a timeout or interruption is not proof that the tool failed.
+The caller should preserve the operation identity and distinguish a proven
+failure from a successful effect whose response was lost.
+
 ## Run
 
 ```sh
@@ -36,6 +60,8 @@ python3 action_authority_check.py --self-test
 python3 action_authority_check.py examples/action_cases.jsonl
 python3 scoped_approval_check.py --self-test
 python3 scoped_approval_check.py examples/scoped_approval_cases.jsonl
+python3 effect_recovery_check.py --self-test
+python3 effect_recovery_check.py examples/effect_recovery_cases.jsonl
 ```
 
 Expected result:
@@ -113,6 +139,40 @@ Each scoped approval JSONL row contains:
 This is deliberately fail-closed. Missing, malformed, changed, rejected, or
 expired evidence never becomes reusable authority.
 
+## Prevent Duplicate Agent Tool Calls After Timeout Or Interruption
+
+When a state-changing agent tool times out, "the call failed" and "the response
+was lost after success" can look identical to the caller. Blindly retrying can
+duplicate an order, message, booking, file write, or other external effect.
+
+[`effect_recovery_check.py`](effect_recovery_check.py) demonstrates a small
+application-owned recovery contract. It binds one stable operation ID to a
+canonical digest of the tool name and arguments, preserves the prior attempt
+state, and requires explicit read-back evidence before retrying an ambiguous
+outcome.
+
+Before following `execute_once`, the host must atomically reserve the operation
+ID and digest as `in_flight`. If another caller already reserved it, reload that
+record and evaluate again instead of dispatching a concurrent duplicate.
+
+| Evidence | Decision |
+| --- | --- |
+| No prior attempt | `execute_once` |
+| Same request already committed | `return_recorded_result` |
+| Operation ID reused for different tool arguments | `reject_idempotency_key_reuse` |
+| Prior outcome unknown; read-back reports the effect | `record_observed_success` |
+| Prior outcome unknown; read-back reports no effect | `retry_same_operation_id` |
+| Prior outcome unknown; read-back unavailable | `stop_for_review` |
+| Matching attempt still in flight | `wait_for_current_attempt` |
+| Record reports failure before any effect and includes evidence | `retry_same_operation_id` |
+
+Each fixture contains an `operation` with a stable `id`, `tool`, and
+`arguments`; an optional durable `record`; optional application-specific
+`read_back` evidence; and the `expected_decision`. The checker returns a
+deterministic receipt containing the operation ID, request digest, prior state,
+read-back status, decision, and reason. It never treats missing evidence as
+proof that an effect is absent.
+
 ## Decisions
 
 | Action | Decision |
@@ -143,8 +203,12 @@ connector exports, credentials, local paths, or personal data.
 
 ## Scope
 
-This is a classifier example, not a sandbox. It prints the decision a host
-application should enforce before executing anything.
+These are decision examples, not a sandbox or transaction manager. They do not
+execute, retry, or undo an action, and they cannot provide exactly-once delivery
+when the underlying tool or service lacks durable idempotency and read-back
+support. The recovery checker validates the supplied record and evidence shape;
+the host application remains responsible for collecting trustworthy evidence
+and persisting operation state durably.
 
 ## Quality Checks
 
@@ -153,5 +217,7 @@ python3 action_authority_check.py --self-test
 python3 action_authority_check.py examples/action_cases.jsonl
 python3 scoped_approval_check.py --self-test
 python3 scoped_approval_check.py examples/scoped_approval_cases.jsonl
-python3 -m py_compile action_authority_check.py scoped_approval_check.py
+python3 effect_recovery_check.py --self-test
+python3 effect_recovery_check.py examples/effect_recovery_cases.jsonl
+python3 -m py_compile action_authority_check.py scoped_approval_check.py effect_recovery_check.py
 ```

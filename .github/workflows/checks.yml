@@ -14,4 +14,6 @@ jobs:
           python-version: "3.x"
       - run: python3 action_authority_check.py --self-test
       - run: python3 action_authority_check.py examples/action_cases.jsonl
-      - run: python3 -m py_compile action_authority_check.py
+      - run: python3 effect_recovery_check.py --self-test
+      - run: python3 effect_recovery_check.py examples/effect_recovery_cases.jsonl
+      - run: python3 -m py_compile action_authority_check.py effect_recovery_check.py
