@@ -20,6 +20,25 @@ The examples do not call a model and do not execute actions. They read
 synthetic JSONL cases, classify each proposed action, approval scope, or
 recovery state, and check the result against the expected decision.
 
+## Did the Tool Already Run?
+
+After a timeout or interruption, run the synthetic recovery cases:
+
+```sh
+python3 effect_recovery_check.py --self-test
+```
+
+Three representative outcomes are:
+
+```text
+PASS lost_response_read_back_finds_effect record_observed_success
+PASS timeout_read_back_reports_absence retry_same_operation_id
+PASS unavailable_read_back_stops_for_review stop_for_review
+```
+
+These mean: preserve an observed success, retry only after evidence of absence,
+and stop when the outcome cannot be proven.
+
 ## Why It Exists
 
 Agent workflows should separate suggestion from authority. A model can propose a
