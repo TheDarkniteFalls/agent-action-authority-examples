@@ -12,13 +12,39 @@
 > **First check:** `python3 action_authority_check.py --self-test`
 <!-- toolkit-trust-card:end -->
 
-A tiny collection of runnable examples for classifying model or agent actions
-before execution and recovering safely when a state-changing tool's outcome is
-unknown.
+A tiny collection of runnable examples for checking instructions and plans,
+classifying model or agent actions before execution, and recovering safely when
+a state-changing tool's outcome is unknown.
 
-The examples do not call a model and do not execute actions. They read
-synthetic JSONL cases, classify each proposed action, approval scope, or
-recovery state, and check the result against the expected decision.
+The examples do not call a model, use a network, or execute actions. They read
+synthetic inputs, return deterministic receipts, and check the result against
+the expected decision.
+
+## Is the Agent Rewriting the Plan?
+
+Run the new Plan Fidelity Gate before action-authority checking:
+
+```sh
+python3 plan_fidelity_check.py --self-test
+```
+
+It keeps four questions separate:
+
+| Layer | Question | Checker |
+| --- | --- | --- |
+| Instructions | Do the named sources agree? | `plan_fidelity_check.py preflight` |
+| Plan | Does the candidate preserve the confirmed process? | `plan_fidelity_check.py check-plan` |
+| Action | Is the actual operation allowed? | `action_authority_check.py` |
+| Recovery | What is safe after an uncertain effect? | `effect_recovery_check.py` |
+
+The harness owns the approved plan digest, current stage, single-use
+authorization, three separate budgets, stop conditions, and promotion. The
+agent may vary ordinary detail inside an approved stage, but route, tools,
+effects, budgets, approvals, and stage changes require an external decision.
+
+Read the plain-language [Plan Fidelity Gate guide](PLAN_FIDELITY_GATE.md) or
+install the strict, explicitly invoked
+[`$plan-fidelity` Skill](skills/plan-fidelity/SKILL.md).
 
 ## Did the Tool Already Run?
 
@@ -45,6 +71,10 @@ Agent workflows should separate suggestion from authority. A model can propose a
 read, write, network, or publish action, but the application should classify the
 action before anything happens.
 
+They should also separate goal ownership from procedural authority. A capable
+agent may propose a useful repair without owning permission to change the
+route, retry budget, review boundary, or next stage.
+
 They should also separate approving one tool call from granting reusable
 authority. A reusable grant should be explicit about the tool identity,
 application-defined argument scope, and expiry.
@@ -62,6 +92,10 @@ python3 scoped_approval_check.py --self-test
 python3 scoped_approval_check.py examples/scoped_approval_cases.jsonl
 python3 effect_recovery_check.py --self-test
 python3 effect_recovery_check.py examples/effect_recovery_cases.jsonl
+python3 plan_fidelity_check.py --self-test
+python3 plan_fidelity_check.py preflight examples/plan-fidelity/manifest.json
+python3 plan_fidelity_check.py check-envelope examples/plan-fidelity/manifest.json examples/plan-fidelity/envelope.json
+python3 plan_fidelity_check.py check-plan examples/plan-fidelity/manifest.json examples/plan-fidelity/envelope.json examples/plan-fidelity/state.json examples/plan-fidelity/accepted_plan.json
 ```
 
 Expected result:
@@ -198,8 +232,9 @@ Each JSONL row contains:
 
 ## Public Data Notice
 
-All cases are synthetic. Do not add private prompts, real assistant logs,
-connector exports, credentials, local paths, or personal data.
+All cases are synthetic. Do not add private prompts, real instruction bundles,
+controller state, assistant logs, connector exports, credentials, local paths,
+or personal data.
 
 ## Scope
 
@@ -210,6 +245,12 @@ support. The recovery checker validates the supplied record and evidence shape;
 the host application remains responsible for collecting trustworthy evidence
 and persisting operation state durably.
 
+The Plan Fidelity Gate is likewise effective only when the host protects the
+confirmed envelope and controller state from agent writes, withholds dispatch
+on blocking receipts, atomically consumes stage authorization, and refuses
+automatic promotion. The bundled Skill follows that procedure but cannot turn
+natural-language guidance into a sandbox.
+
 ## Quality Checks
 
 ```sh
@@ -219,5 +260,9 @@ python3 scoped_approval_check.py --self-test
 python3 scoped_approval_check.py examples/scoped_approval_cases.jsonl
 python3 effect_recovery_check.py --self-test
 python3 effect_recovery_check.py examples/effect_recovery_cases.jsonl
-python3 -m py_compile action_authority_check.py scoped_approval_check.py effect_recovery_check.py
+python3 plan_fidelity_check.py --self-test
+python3 plan_fidelity_check.py preflight examples/plan-fidelity/manifest.json
+python3 plan_fidelity_check.py check-envelope examples/plan-fidelity/manifest.json examples/plan-fidelity/envelope.json
+python3 plan_fidelity_check.py check-plan examples/plan-fidelity/manifest.json examples/plan-fidelity/envelope.json examples/plan-fidelity/state.json examples/plan-fidelity/accepted_plan.json
+python3 -m py_compile action_authority_check.py scoped_approval_check.py effect_recovery_check.py plan_fidelity_check.py skills/plan-fidelity/scripts/plan_fidelity_check.py
 ```

@@ -1,0 +1,17 @@
+{
+  "schema_version": "instruction-manifest/v0.1",
+  "sources": [
+    {"id": "policy", "role": "harness_policy", "path": "policy.md"},
+    {"id": "task", "role": "task", "path": "task.txt"},
+    {"id": "reference", "role": "reference", "path": "reference.md"}
+  ],
+  "constraints": [
+    {"source_id": "policy", "field": "effect_ceiling", "value": "proposal"},
+    {"source_id": "task", "field": "required_effect", "value": "proposal"},
+    {"source_id": "policy", "field": "allowed_routes", "value": ["local_files"]},
+    {"source_id": "task", "field": "required_route", "value": "local_files"},
+    {"source_id": "policy", "field": "next_slice", "value": "manual_only"},
+    {"source_id": "policy", "field": "stop_after", "value": "human_review"},
+    {"source_id": "task", "field": "success_boundary", "value": "synthetic plan ready for review"}
+  ]
+}

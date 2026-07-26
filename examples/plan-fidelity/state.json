@@ -1,0 +1,12 @@
+{
+  "schema_version": "plan-fidelity-state/v0.1",
+  "approved_plan_digest": "sha256:db8574731dd3dfdcc02e046f0cdc290ccca36fb06c04aa04531d185da9dac843",
+  "authorization_id": "auth-inspect-001",
+  "authorization_status": "issued",
+  "current_stage": "inspect",
+  "plan_failures_used": 0,
+  "stage_attempts_used": 0,
+  "effect_retries_used": 0,
+  "failure_labels": [],
+  "active_exception_ids": []
+}

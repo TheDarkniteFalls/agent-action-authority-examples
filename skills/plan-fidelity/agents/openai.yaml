@@ -1,0 +1,6 @@
+interface:
+  display_name: "Plan Fidelity"
+  short_description: "Keep agent plans inside approved boundaries"
+  default_prompt: "Use $plan-fidelity to preflight these instructions and check the proposed plan without executing actions."
+policy:
+  allow_implicit_invocation: false
