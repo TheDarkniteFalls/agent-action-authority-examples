@@ -1,7 +1,8 @@
 # Instruction Preflight and Plan Fidelity Gate
 
-An agent may own the goal, but the harness owns the route, retry budget, and
-stop button.
+Check whether a proposed plan still follows the process you approved. For
+example, an agent may suggest a new tool or another attempt after a failure.
+This gate makes that proposed change visible before the work continues.
 
 This example checks whether supplied instructions agree and whether a proposed
 agent plan stays inside a human-confirmed process. It calls no model, makes no
@@ -15,7 +16,8 @@ script, switch tools, reinterpret a retry, skip review, or continue into the
 next slice. Each step can sound helpful while the cumulative process is no
 longer the one a person approved.
 
-Plan fidelity makes that procedural authority explicit. It does not attempt to
+Plan fidelity means preserving the approved process. It makes permission to
+change that process explicit. It does not attempt to
 detect desire, personality, or malicious intent. It compares observable data:
 the instructions, confirmed process, controller state, and candidate plan.
 
@@ -34,7 +36,8 @@ state-changing retry moves to effect recovery before another attempt.
 
 ## Quick start
 
-Run the complete deterministic self-test:
+With Python 3, run this from the repository root. The self-test checks fixed
+synthetic inputs against their expected decisions:
 
 ```sh
 python3 plan_fidelity_check.py --self-test
@@ -76,7 +79,8 @@ reviewing them.
 
 ## 2. Confirm and freeze the process
 
-The envelope names the goal, slice, ordered stages, route and tool boundaries,
+The envelope is the record of the approved process. It names the goal, slice,
+ordered stages, route and tool boundaries,
 effect ceilings, approval checkpoints, success boundary, stop conditions, and
 three separate budgets. `check-envelope` validates it and prints a canonical
 digest.
@@ -183,7 +187,7 @@ The self-test fixes these expected outcomes:
 The separate conflicting manifest also demonstrates contradictory instructions
 and untrusted directive detection before a plan is evaluated.
 
-## Bounded claim
+## What This Example Shows
 
 A harness can prevent an outcome-driven agent from silently rewriting an
 approved process by making plan changes, retry budgets, stops, and stage
