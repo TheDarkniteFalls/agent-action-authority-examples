@@ -1,5 +1,29 @@
 # Agent Action Authority Examples
 
+Before an agent changes a file, reuses an approval or retries a tool call,
+what should the application check? Try these small Python examples to see
+when a proposed action is allowed, needs approval or must stop. There is also
+a check for plans that change an approved process.
+
+The examples do not call a model, use a network, or execute actions. They read
+synthetic inputs, return deterministic receipts, and check the result against
+the expected decision.
+
+## Is the Agent Rewriting the Plan?
+
+With Python 3, run this from the repository root to try the Plan Fidelity
+Gate before action-authority checking:
+
+```sh
+python3 plan_fidelity_check.py --self-test
+```
+
+The self-test compares synthetic plans with their expected decisions. A pass
+means the checker handled those examples as expected; it does not approve a
+real plan or execute an action.
+
+<!-- toolkit-trust-card:placement -->
+
 <!-- toolkit-trust-card:start -->
 > **Public contract:** Stable pattern · about 5 min · Python 3 · no model · no network
 >
@@ -12,22 +36,6 @@
 > **First check:** `python3 action_authority_check.py --self-test`
 <!-- toolkit-trust-card:end -->
 
-A tiny collection of runnable examples for checking instructions and plans,
-classifying model or agent actions before execution, and recovering safely when
-a state-changing tool's outcome is unknown.
-
-The examples do not call a model, use a network, or execute actions. They read
-synthetic inputs, return deterministic receipts, and check the result against
-the expected decision.
-
-## Is the Agent Rewriting the Plan?
-
-Run the new Plan Fidelity Gate before action-authority checking:
-
-```sh
-python3 plan_fidelity_check.py --self-test
-```
-
 It keeps four questions separate:
 
 | Layer | Question | Checker |
@@ -37,7 +45,8 @@ It keeps four questions separate:
 | Action | Is the actual operation allowed? | `action_authority_check.py` |
 | Recovery | What is safe after an uncertain effect? | `effect_recovery_check.py` |
 
-The harness owns the approved plan digest, current stage, single-use
+The harness (the application coordinating the agent) owns the approved plan
+digest, current stage, single-use
 authorization, three separate budgets, stop conditions, and promotion. The
 agent may vary ordinary detail inside an approved stage, but route, tools,
 effects, budgets, approvals, and stage changes require an external decision.
@@ -65,25 +74,20 @@ PASS unavailable_read_back_stops_for_review stop_for_review
 These mean: preserve an observed success, retry only after evidence of absence,
 and stop when the outcome cannot be proven.
 
-## Why It Exists
+## Choose The Check For Your Situation
 
-Agent workflows should separate suggestion from authority. A model can propose a
-read, write, network, or publish action, but the application should classify the
-action before anything happens.
+- **A plan changes the agreed process:** check it before accepting a different
+  route, tool, retry budget, review boundary or stage. Owning the goal does not
+  grant permission to change the process.
+- **An agent proposes an action:** classify the read, write, network or publish
+  operation before anything happens.
+- **An approval might be reused:** check the exact tool identity, the argument
+  scope defined by the application, and the expiry. Approval for one call is
+  not automatically reusable.
+- **A tool response is missing:** keep the operation identity and check what
+  actually happened. A timeout may follow a successful effect.
 
-They should also separate goal ownership from procedural authority. A capable
-agent may propose a useful repair without owning permission to change the
-route, retry budget, review boundary, or next stage.
-
-They should also separate approving one tool call from granting reusable
-authority. A reusable grant should be explicit about the tool identity,
-application-defined argument scope, and expiry.
-
-After dispatch, a timeout or interruption is not proof that the tool failed.
-The caller should preserve the operation identity and distinguish a proven
-failure from a successful effect whose response was lost.
-
-## Run
+## Run The Complete Set
 
 ```sh
 python3 action_authority_check.py --self-test
@@ -131,11 +135,12 @@ PASS self_test
 
 ## Scoped Approval Grants
 
-Some agent frameworks support both approval for one call and a sticky approval
-for later calls to the same tool. The middle case is application-owned: reuse
-an approval only while a deliberately constructed scope still matches.
+Approval can cover one call or, when explicitly granted, later calls within a
+defined scope. This example checks a reusable grant against the tool, selected
+arguments and expiry recorded by the application.
 
-This example models an idempotent synthetic tool:
+This example models an idempotent synthetic tool: repeating the same request
+should not create an additional effect.
 
 ```text
 deploy_service(environment, revision)
@@ -236,7 +241,7 @@ All cases are synthetic. Do not add private prompts, real instruction bundles,
 controller state, assistant logs, connector exports, credentials, local paths,
 or personal data.
 
-## Scope
+## What These Examples Show
 
 These are decision examples, not a sandbox or transaction manager. They do not
 execute, retry, or undo an action, and they cannot provide exactly-once delivery
